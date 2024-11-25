@@ -1,0 +1,18 @@
+import json
+
+@main.route("/process_audio", methods=["POST"])
+def process_audio():
+    recognizer = sr.Recognizer()
+    audio_file = request.files["audio"]
+    with sr.AudioFile(audio_file) as source:
+        audio_data = recognizer.record(source)
+        try:
+            text = recognizer.recognize_google(audio_data).lower()
+            with open("mapping.json", "r") as f:
+                mapping = json.load(f)
+            if text in mapping:
+                return jsonify({"sign": mapping[text]})
+            else:
+                return jsonify({"error": "No sign found for this phrase"})
+        except sr.UnknownValueError:
+            return jsonify({"error": "Could not understand the audio"})
