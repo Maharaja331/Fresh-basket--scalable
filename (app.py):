@@ -1,0 +1,54 @@
+from flask import Flask, request, jsonify
+import mysql.connector
+from mysql.connector import Error
+
+app = Flask(__name__)
+
+# RDS MySQL credentials
+RDS_HOST = 'your-rds-endpoint'
+RDS_USER = 'your-db-user'
+RDS_PASSWORD = 'your-db-password'
+RDS_DATABASE = 'your-db-name'
+
+# Connect to MySQL database
+def get_db_connection():
+    connection = mysql.connector.connect(
+        host=RDS_HOST,
+        user=RDS_USER,
+        password=RDS_PASSWORD,
+        database=RDS_DATABASE
+    )
+    return connection
+
+# Basic route
+@app.route('/')
+def home():
+    return 'Welcome to the E-Commerce Platform!'
+
+# Endpoint to get products
+@app.route('/products', methods=['GET'])
+def get_products():
+    connection = get_db_connection()
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM products")  # Assumes 'products' table exists in RDS
+    products = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return jsonify(products)
+
+# Endpoint to add a product (POST request)
+@app.route('/products', methods=['POST'])
+def add_product():
+    name = request.json.get('name')
+    price = request.json.get('price')
+
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO products (name, price) VALUES (%s, %s)", (name, price))
+    connection.commit()
+    cursor.close()
+    connection.close()
+    return jsonify({"message": "Product added successfully!"}), 201
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=80)
